@@ -28,7 +28,7 @@ jobs:
           
           commitSHA=${GITHUB_SHA::8}
 
-          docker build -t $_repoName -f $_dockerFile .
+          docker build -t $_repoName -f $_dockerFile . --build-arg "commitSHA=$commitSHA"
           latestImageTag="$_repoName:$commitSHA"
           docker tag $_repoName $latestImageTag
           docker push $latestImageTag
