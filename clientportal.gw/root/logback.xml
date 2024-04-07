@@ -27,7 +27,8 @@
     </appender>
 
     <logger name="HttpMessageLogger" level="INFO" additivity="false">
-        <appender-ref ref="MESSAGELOG" />
+<!--        <appender-ref ref="MESSAGELOG" />-->
+        <appender-ref ref="STDOUT" />
     </logger>
 
     <logger name="ibgroup.web.core.clientportal.gw.core.CookieManager" level="INFO" additivity="false">
