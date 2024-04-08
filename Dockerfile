@@ -4,6 +4,8 @@ COPY ./clientportal.gw /data/IBKR/
 
 WORKDIR /data/IBKR/
 
+ENV TZ=Asia/Shanghai
+
 ARG commitSHA=Unknown
 LABEL commitSHA="${commitSHA}"
 
