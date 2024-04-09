@@ -1,0 +1,1628 @@
+{
+  "basePath": "/v1/api",
+  "produces": ["application/json"],
+  "name": "swagger",
+  "schemes": ["http"],
+  "swagger": "2.0",
+  "info": { "title": "Client Portal Web API", "description": "Client Portal Web API", "version": "1.0.0" },
+  "paths": {
+    "/tickle": {
+      "post": {
+        "summary": "Ping the server to keep the session open",
+        "description": "If the gateway has not received any requests for several minutes an open session will automatically timeout. The tickle endpoint pings the server to prevent the session from ending.",
+        "tags": ["Session"],
+        "responses": { "200": { "description": "confirms session is open" } }
+      }
+    },
+    "/logout": {
+      "post": {
+        "summary": "Ends the current session",
+        "description": "Logs the user out of the gateway session. Any further activity requires re-authentication.",
+        "tags": ["Session"],
+        "responses": {
+          "200": {
+            "description": "returned status indicates if user is logged in",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "confirmed": {
+                  "description": "true means username is still logged in, false means it is not",
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/validate": {
+      "get": {
+        "summary": "Validate SSO",
+        "description": "Validates the current session for the SSO user",
+        "tags": ["Session"],
+        "responses": {
+          "500": { "description": "System failed" },
+          "401": { "description": "Authentication failed" },
+          "200": {
+            "description": "An Object",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "LOGIN_TYPE": { "description": "1 for Live, 2 for Paper", "type": "number" },
+                "USER_NAME": { "description": "Username", "type": "string" },
+                "USER_ID": { "description": "User ID", "type": "number" },
+                "expire": {
+                  "description": "Time in milliseconds until session expires. Caller needs to call the again to re-validate session",
+                  "type": "number"
+                },
+                "RESULT": { "description": "true if session was validated; false if not.", "type": "boolean" },
+                "AUTH_TIME": { "description": "Time of session validation", "type": "number" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portfolio/accounts": {
+      "get": {
+        "summary": "Portfolio Accounts",
+        "description": "In non-tiered account structures, returns a list of accounts for which the user can view position and account information. This endpoint must be called prior to calling other /portfolio endpoints for those accounts. For querying a list of accounts which the user can trade, see /iserver/accounts. For a list of subaccounts in tiered account structures (e.g. financial advisor or ibroker accounts) see /portfolio/subaccounts.",
+        "tags": ["Account", "Portfolio"],
+        "responses": { "200": { "description": "An array", "schema": { "$ref": "#/definitions/accounts" } } }
+      }
+    },
+    "/portfolio/subaccounts": {
+      "get": {
+        "summary": "List of Sub-Accounts",
+        "description": "Used in tiered account structures (such as Financial Advisor and IBroker Accounts) to return a list of up to 100 sub-accounts for which the user can view position and account-related information. This endpoint must be called prior to calling other /portfolio endpoints for those sub-accounts. If you have more than 100 sub-accounts use /portfolio/subaccounts2. To query a list of accounts the user can trade, see /iserver/accounts.",
+        "tags": ["Account", "Portfolio"],
+        "responses": { "200": { "description": "An array", "schema": { "$ref": "#/definitions/account" } } }
+      }
+    },
+    "/portfolio/subaccounts2": {
+      "get": {
+        "summary": "List of Sub-Accounts (Large Accounts)",
+        "description": "Used in tiered account structures (such as Financial Advisor and IBroker Accounts) to return a list of sub-accounts, paginated up to 20 accounts per page, for which the user can view position and account-related information. This endpoint must be called prior to calling other /portfolio endpoints for those sub-accounts. If you have less than 100 sub-accounts use /portfolio/subaccounts. To query a list of accounts the user can trade, see /iserver/accounts.",
+        "tags": ["Account", "Portfolio"],
+        "parameters": [{ "name": "page", "in": "path", "required": true, "type": "string", "default": "0" }],
+        "responses": {
+          "200": {
+            "description": "An object containing an array",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "total": { "type": "number", "description": "Number of sub-accounts" },
+                    "pageSize": {
+                      "type": "number",
+                      "description": "How many sub-accounts are returned for the page requested. A max of 20 per page."
+                    },
+                    "pageNume": { "type": "number", "description": "Current page number." }
+                  }
+                },
+                "subaccounts": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "Account information",
+                    "properties": {
+                      "id": { "type": "string", "description": "The account identification value" },
+                      "accountId": {
+                        "type": "string",
+                        "description": "The account number",
+                        "example": "U12345678 for Individual Live Accounts, DU12345678 for Individual Paper Accounts"
+                      },
+                      "accountVan": { "type": "string", "description": "The accountAlias" },
+                      "accountTitle": { "type": "string", "description": "Title of the account" },
+                      "displayName": {
+                        "type": "string",
+                        "description": "Whichever value is not null in this priority",
+                        "enum": ["accountTitle", "accountVan", "accountId"]
+                      },
+                      "accountAlias": {
+                        "type": "string",
+                        "description": "User customizable account alias. Refer to [Configure Account Alias](https://guides.interactivebrokers.com/cp/cp.htm#am/settings/accountalias.htm) for details."
+                      },
+                      "accountStatus": { "type": "number", "description": "When the account was opened in unix time." },
+                      "currency": {
+                        "type": "string",
+                        "description": "Base currency of the account.",
+                        "enum": [
+                          "AUD",
+                          "GBP",
+                          "CAD",
+                          "CNH",
+                          "CZK",
+                          "DKK",
+                          "EUR",
+                          "HKD",
+                          "HUF",
+                          "INR",
+                          "ILS",
+                          "JPY",
+                          "MXN",
+                          "NOK",
+                          "NZD",
+                          "PLN",
+                          "RUB",
+                          "SGD",
+                          "SEK",
+                          "CHF",
+                          "USD"
+                        ]
+                      },
+                      "type": {
+                        "type": "string",
+                        "description": "Account Type",
+                        "enum": ["INDIVIDUAL", "JOINT", "ORG", "TRUST", "DEMO"]
+                      },
+                      "tradingType": { "type": "string", "description": "UNI - Deprecated property" },
+                      "faclient": {
+                        "type": "boolean",
+                        "description": "If an account is a sub-account to a Financial Advisor."
+                      },
+                      "clearingStatus": {
+                        "type": "string",
+                        "enum": ["O", "P", "N", "A", "R", "C"],
+                        "description": "Status of the Account\n  * O = Open\n  * P or N = Pending\n  * A = Abandoned\n  * R = Rejected\n  * C = Closed\n  covestor:\n    type: boolean\n    description: Is a Covestor Account\n  parent:\n    type: object\n    properties:\n      mmc:\n        type: array\n        items:\n          type: string\n          description: Money Manager Client (MMC) Account\n      accountId:\n        type: string\n        description: Account Number for Money Manager Client\n      isMParent:\n        type: boolean\n        description: Is MM a Parent Account\n      isMChild:\n        type: boolean\n        description: Is MM a Child Account\n      isMultiplex:\n        type: boolean\n        description: Is a Multiplex Account. These are account models with individual account being parent and managed account being child.\n  desc:\n    type: string\n    description: Formatted \"accountId - accountAlias\"\n"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portfolio/{accountId}/meta": {
+      "get": {
+        "summary": "Account Information",
+        "description": "Account information related to account Id /portfolio/accounts or /portfolio/subaccounts must be called prior to this endpoint.",
+        "tags": ["Account", "Portfolio"],
+        "parameters": [
+          { "name": "accountId", "in": "path", "required": true, "type": "string", "description": "account id" }
+        ],
+        "responses": { "200": { "description": "An object", "schema": { "$ref": "#/definitions/accounts" } } }
+      }
+    },
+    "/portfolio/{accountId}/allocation": {
+      "get": {
+        "summary": "Account Allocation",
+        "description": "Information about the account's portfolio allocation by Asset Class, Industry and Category.  /portfolio/accounts or /portfolio/subaccounts must be called prior to this endpoint.",
+        "tags": ["Portfolio"],
+        "parameters": [
+          { "name": "accountId", "in": "path", "required": true, "type": "string", "description": "account id" }
+        ],
+        "responses": {
+          "200": {
+            "description": "returns an object of three different allocations",
+            "schema": { "$ref": "#/definitions/allocation" }
+          }
+        }
+      }
+    },
+    "/portfolio/allocation": {
+      "post": {
+        "summary": "Account Alloction (All Accounts)",
+        "description": "Similar to /portfolio/{accountId}/allocation but returns a consolidated view of of all the accounts returned by /portfolio/accounts. /portfolio/accounts or /portfolio/subaccounts must be called prior to this endpoint.",
+        "tags": ["Portfolio"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "accounts info",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "acctIds": { "type": "array", "items": { "type": "string", "description": "account id" } }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "returns an object of three different allocations",
+            "schema": { "$ref": "#/definitions/allocation" }
+          }
+        }
+      }
+    },
+    "/portfolio/{accountId}/positions/{pageId}": {
+      "get": {
+        "summary": "Portfolio Positions",
+        "description": "Returns a list of positions for the given account. The endpoint supports paging, page's default size is 30 positions. /portfolio/accounts or /portfolio/subaccounts must be called prior to this endpoint.",
+        "tags": ["Portfolio"],
+        "parameters": [
+          { "name": "accountId", "in": "path", "required": true, "type": "string", "description": "account id" },
+          {
+            "name": "pageId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "default": "0",
+            "description": "page id"
+          },
+          { "name": "model", "in": "query", "type": "string", "description": "optional" },
+          {
+            "name": "sort",
+            "in": "query",
+            "type": "string",
+            "description": "declare the table to be sorted by which column"
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "type": "string",
+            "description": "in which order, a means ascending - d means descending"
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "type": "string",
+            "description": "period for pnl column, can be 1D, 7D, 1M..."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "returns a list of positions in the portfolio",
+            "schema": { "$ref": "#/definitions/position" }
+          }
+        }
+      }
+    },
+    "/portfolio/{accountId}/position/{conid}": {
+      "get": {
+        "summary": "Position by Conid",
+        "description": "Returns a list of all positions matching the conid. For portfolio models the conid could be in more than one model, returning an array with the name of the model it belongs to.  /portfolio/accounts or /portfolio/subaccounts must be called prior to this endpoint.",
+        "tags": ["Portfolio"],
+        "parameters": [
+          { "name": "accountId", "in": "path", "required": true, "type": "string", "description": "account id" },
+          { "name": "conid", "in": "path", "required": true, "type": "integer", "description": "contract id" }
+        ],
+        "responses": {
+          "200": {
+            "description": "returns a list containing only one position for the conid",
+            "schema": { "$ref": "#/definitions/position" }
+          }
+        }
+      }
+    },
+    "/portfolio/{accountId}/positions/invalidate": {
+      "post": {
+        "summary": "Invalidates the backend cache of the Portfolio",
+        "tags": ["Portfolio"],
+        "parameters": [
+          { "name": "accountId", "in": "path", "required": true, "type": "string", "description": "account id" }
+        ],
+        "responses": { "200": { "description": "Means successful", "schema": { "type": "object" } } }
+      }
+    },
+    "/portfolio/{accountId}/summary": {
+      "get": {
+        "summary": "Account Summary",
+        "description": "Returns information about margin, cash balances and other information related to specified account. See also /portfolio/{accountId}/ledger. /portfolio/accounts or /portfolio/subaccounts must be called prior to this endpoint.",
+        "tags": ["Account", "Portfolio"],
+        "parameters": [
+          { "name": "accountId", "in": "path", "required": true, "type": "string", "description": "account id" }
+        ],
+        "responses": {
+          "200": {
+            "description": "returns an object containing account summary. The object contains multiple properties. A property is sufficed with -c if its provides commodity value, -s if it provides security value and -c if its UKL segment value",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "accountready": { "$ref": "#/definitions/summary" },
+                "accounttype": { "$ref": "#/definitions/summary" },
+                "accruedcash": { "$ref": "#/definitions/summary" },
+                "accruedcash-c": { "$ref": "#/definitions/summary" },
+                "accruedcash-f": { "$ref": "#/definitions/summary" },
+                "accruedcash-s": { "$ref": "#/definitions/summary" },
+                "accrueddividend": { "$ref": "#/definitions/summary" },
+                "accrueddividend-c": { "$ref": "#/definitions/summary" },
+                "accrueddividend-f": { "$ref": "#/definitions/summary" },
+                "accrueddividend-s": { "$ref": "#/definitions/summary" },
+                "availablefunds": { "$ref": "#/definitions/summary" },
+                "availablefunds-c": { "$ref": "#/definitions/summary" },
+                "availablefunds-f": { "$ref": "#/definitions/summary" },
+                "availablefunds-s": { "$ref": "#/definitions/summary" },
+                "billable": { "$ref": "#/definitions/summary" },
+                "billable-c": { "$ref": "#/definitions/summary" },
+                "billable-f": { "$ref": "#/definitions/summary" },
+                "billable-s": { "$ref": "#/definitions/summary" },
+                "buyingpower": { "$ref": "#/definitions/summary" },
+                "cushion": { "$ref": "#/definitions/summary" },
+                "daytradesremaining": { "$ref": "#/definitions/summary" },
+                "daytradesremainingt+1": { "$ref": "#/definitions/summary" },
+                "daytradesremainingt+2": { "$ref": "#/definitions/summary" },
+                "daytradesremainingt+3": { "$ref": "#/definitions/summary" },
+                "daytradesremainingt+4": { "$ref": "#/definitions/summary" },
+                "equitywithloanvalue": { "$ref": "#/definitions/summary" },
+                "equitywithloanvalue-c": { "$ref": "#/definitions/summary" },
+                "equitywithloanvalue-f": { "$ref": "#/definitions/summary" },
+                "equitywithloanvalue-s": { "$ref": "#/definitions/summary" },
+                "excessliquidity": { "$ref": "#/definitions/summary" },
+                "excessliquidity-c": { "$ref": "#/definitions/summary" },
+                "excessliquidity-f": { "$ref": "#/definitions/summary" },
+                "excessliquidity-s": { "$ref": "#/definitions/summary" },
+                "fullavailablefunds": { "$ref": "#/definitions/summary" },
+                "fullavailablefunds-c": { "$ref": "#/definitions/summary" },
+                "fullavailablefunds-f": { "$ref": "#/definitions/summary" },
+                "fullavailablefunds-s": { "$ref": "#/definitions/summary" },
+                "fullexcessliquidity": { "$ref": "#/definitions/summary" },
+                "fullexcessliquidity-c": { "$ref": "#/definitions/summary" },
+                "fullexcessliquidity-f": { "$ref": "#/definitions/summary" },
+                "fullexcessliquidity-s": { "$ref": "#/definitions/summary" },
+                "fullinitmarginreq": { "$ref": "#/definitions/summary" },
+                "fullinitmarginreq-c": { "$ref": "#/definitions/summary" },
+                "fullinitmarginreq-f": { "$ref": "#/definitions/summary" },
+                "fullinitmarginreq-s": { "$ref": "#/definitions/summary" },
+                "fullmaintmarginreq": { "$ref": "#/definitions/summary" },
+                "fullmaintmarginreq-c": { "$ref": "#/definitions/summary" },
+                "fullmaintmarginreq-f": { "$ref": "#/definitions/summary" },
+                "fullmaintmarginreq-s": { "$ref": "#/definitions/summary" },
+                "grosspositionvalue": { "$ref": "#/definitions/summary" },
+                "grosspositionvalue-c": { "$ref": "#/definitions/summary" },
+                "grosspositionvalue-f": { "$ref": "#/definitions/summary" },
+                "grosspositionvalue-s": { "$ref": "#/definitions/summary" },
+                "guarantee": { "$ref": "#/definitions/summary" },
+                "guarantee-c": { "$ref": "#/definitions/summary" },
+                "guarantee-f": { "$ref": "#/definitions/summary" },
+                "guarantee-s": { "$ref": "#/definitions/summary" },
+                "highestseverity": { "$ref": "#/definitions/summary" },
+                "highestseverity-c": { "$ref": "#/definitions/summary" },
+                "highestseverity-f": { "$ref": "#/definitions/summary" },
+                "highestseverity-s": { "$ref": "#/definitions/summary" },
+                "indianstockhaircut": { "$ref": "#/definitions/summary" },
+                "indianstockhaircut-c": { "$ref": "#/definitions/summary" },
+                "indianstockhaircut-f": { "$ref": "#/definitions/summary" },
+                "indianstockhaircut-s": { "$ref": "#/definitions/summary" },
+                "initmarginreq": { "$ref": "#/definitions/summary" },
+                "initmarginreq-c": { "$ref": "#/definitions/summary" },
+                "initmarginreq-f": { "$ref": "#/definitions/summary" },
+                "initmarginreq-s": { "$ref": "#/definitions/summary" },
+                "leverage": { "$ref": "#/definitions/summary" },
+                "leverage-c": { "$ref": "#/definitions/summary" },
+                "leverage-f": { "$ref": "#/definitions/summary" },
+                "leverage-s": { "$ref": "#/definitions/summary" },
+                "lookaheadavailablefunds": { "$ref": "#/definitions/summary" },
+                "lookaheadavailablefunds-c": { "$ref": "#/definitions/summary" },
+                "lookaheadavailablefunds-f": { "$ref": "#/definitions/summary" },
+                "lookaheadavailablefunds-s": { "$ref": "#/definitions/summary" },
+                "lookaheadexcessliquidity": { "$ref": "#/definitions/summary" },
+                "lookaheadexcessliquidity-c": { "$ref": "#/definitions/summary" },
+                "lookaheadexcessliquidity-f": { "$ref": "#/definitions/summary" },
+                "lookaheadexcessliquidity-s": { "$ref": "#/definitions/summary" },
+                "lookaheadinitmarginreq": { "$ref": "#/definitions/summary" },
+                "lookaheadinitmarginreq-c": { "$ref": "#/definitions/summary" },
+                "lookaheadinitmarginreq-f": { "$ref": "#/definitions/summary" },
+                "lookaheadinitmarginreq-s": { "$ref": "#/definitions/summary" },
+                "lookaheadmaintmarginreq": { "$ref": "#/definitions/summary" },
+                "lookaheadmaintmarginreq-c": { "$ref": "#/definitions/summary" },
+                "lookaheadmaintmarginreq-f": { "$ref": "#/definitions/summary" },
+                "lookaheadmaintmarginreq-s": { "$ref": "#/definitions/summary" },
+                "lookaheadnextchange": { "$ref": "#/definitions/summary" },
+                "maintmarginreq": { "$ref": "#/definitions/summary" },
+                "maintmarginreq-c": { "$ref": "#/definitions/summary" },
+                "maintmarginreq-f": { "$ref": "#/definitions/summary" },
+                "maintmarginreq-s": { "$ref": "#/definitions/summary" },
+                "netliquidation": { "$ref": "#/definitions/summary" },
+                "netliquidation-c": { "$ref": "#/definitions/summary" },
+                "netliquidation-f": { "$ref": "#/definitions/summary" },
+                "netliquidation-s": { "$ref": "#/definitions/summary" },
+                "netliquidationuncertainty": { "$ref": "#/definitions/summary" },
+                "nlvandmargininreview": { "$ref": "#/definitions/summary" },
+                "pasharesvalue": { "$ref": "#/definitions/summary" },
+                "pasharesvalue-c": { "$ref": "#/definitions/summary" },
+                "pasharesvalue-f": { "$ref": "#/definitions/summary" },
+                "pasharesvalue-s": { "$ref": "#/definitions/summary" },
+                "postexpirationexcess": { "$ref": "#/definitions/summary" },
+                "postexpirationexcess-c": { "$ref": "#/definitions/summary" },
+                "postexpirationexcess-f": { "$ref": "#/definitions/summary" },
+                "postexpirationexcess-s": { "$ref": "#/definitions/summary" },
+                "postexpirationmargin": { "$ref": "#/definitions/summary" },
+                "postexpirationmargin-c": { "$ref": "#/definitions/summary" },
+                "postexpirationmargin-f": { "$ref": "#/definitions/summary" },
+                "postexpirationmargin-s": { "$ref": "#/definitions/summary" },
+                "previousdayequitywithloanvalue": { "$ref": "#/definitions/summary" },
+                "previousdayequitywithloanvalue-c": { "$ref": "#/definitions/summary" },
+                "previousdayequitywithloanvalue-f": { "$ref": "#/definitions/summary" },
+                "previousdayequitywithloanvalue-s": { "$ref": "#/definitions/summary" },
+                "segmenttitle-c": { "$ref": "#/definitions/summary" },
+                "segmenttitle-f": { "$ref": "#/definitions/summary" },
+                "segmenttitle-s": { "$ref": "#/definitions/summary" },
+                "totalcashvalue": { "$ref": "#/definitions/summary" },
+                "totalcashvalue-c": { "$ref": "#/definitions/summary" },
+                "totalcashvalue-f": { "$ref": "#/definitions/summary" },
+                "totalcashvalue-s": { "$ref": "#/definitions/summary" },
+                "totaldebitcardpendingcharges": { "$ref": "#/definitions/summary" },
+                "totaldebitcardpendingcharges-c": { "$ref": "#/definitions/summary" },
+                "totaldebitcardpendingcharges-f": { "$ref": "#/definitions/summary" },
+                "totaldebitcardpendingcharges-s": { "$ref": "#/definitions/summary" },
+                "tradingtype-f": { "$ref": "#/definitions/summary" },
+                "tradingtype-s": { "$ref": "#/definitions/summary" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portfolio/{accountId}/ledger": {
+      "get": {
+        "summary": "Account Ledger",
+        "description": "Information regarding settled cash, cash balances, etc. in the account's base currency and any other cash balances hold in other currencies.  /portfolio/accounts or /portfolio/subaccounts must be called prior to this endpoint. The list of supported currencies is available at https://www.interactivebrokers.com/en/index.php?f=3185.",
+        "tags": ["Account", "Portfolio"],
+        "parameters": [
+          { "name": "accountId", "in": "path", "required": true, "type": "string", "description": "account id" }
+        ],
+        "responses": {
+          "200": {
+            "description": "200 means successful",
+            "schema": { "type": "object", "properties": { "BASE": { "$ref": "#/definitions/ledger" } } }
+          }
+        }
+      }
+    },
+    "/portfolio/positions/{conid}": {
+      "get": {
+        "summary": "Positions by Conid",
+        "description": "Returns an object of all positions matching the conid for all the selected accounts. For portfolio models the conid could be in more than one model, returning an array with the name of the model it belongs to. /portfolio/accounts or /portfolio/subaccounts must be called prior to this endpoint.",
+        "tags": ["Portfolio"],
+        "parameters": [
+          { "name": "conid", "in": "path", "required": true, "type": "integer", "description": "contract id" }
+        ],
+        "responses": {
+          "200": {
+            "description": "returns an object containing account and its position information",
+            "schema": { "type": "object", "properties": { "ACCTID": { "$ref": "#/definitions/position" } } }
+          }
+        }
+      }
+    },
+    "/iserver/auth/status": {
+      "post": {
+        "summary": "Authentication Status",
+        "description": "Current Authentication status to the Brokerage system. Market Data and Trading is not possible if not authenticated, e.g. authenticated shows false",
+        "tags": ["Session"],
+        "responses": {
+          "200": { "description": "Authentication Status", "schema": { "$ref": "#/definitions/authStatus" } }
+        }
+      }
+    },
+    "/iserver/reauthenticate": {
+      "post": {
+        "summary": "Tries to re-authenticate to Brokerage",
+        "description": "When using the CP Gateway, this endpoint provides a way to reauthenticate to the Brokerage system as long as there is a valid SSO session, see /sso/validate.\n",
+        "tags": ["Session"],
+        "responses": {
+          "200": { "description": "Authentication Status", "schema": { "$ref": "#/definitions/authStatus" } }
+        }
+      }
+    },
+    "/iserver/account/trades": {
+      "get": {
+        "summary": "List of Trades for the selected account",
+        "description": "Returns a list of trades for the currently selected account for current day and six previous days. It is advised to call this endpoint once per session.\n",
+        "tags": ["Trades"],
+        "responses": {
+          "200": {
+            "description": "An array of trades",
+            "schema": { "type": "array", "items": { "$ref": "#/definitions/trade" } }
+          }
+        }
+      }
+    },
+    "/iserver/accounts": {
+      "get": {
+        "summary": "Brokerage Accounts",
+        "description": "Returns a list of accounts the user has trading access to, their respective aliases and the currently selected account. Note this endpoint must be called before modifying an order or querying open orders.",
+        "tags": ["Account"],
+        "responses": {
+          "200": {
+            "description": "An array of accounts",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "accounts": { "type": "array", "items": { "type": "string" }, "description": "Unique account id" },
+                "aliases": { "type": "object", "description": "Account Id and its alias" },
+                "selectedAccount": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/iserver/account": {
+      "post": {
+        "summary": "Switch Account",
+        "description": "If an user has multiple accounts, and user wants to get orders, trades, etc. of an account other than currently selected account, then user can update the currently selected account using this API and then can fetch required information for the newly updated account.",
+        "tags": ["Account"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "description": "account id",
+            "schema": { "$ref": "#/definitions/set-account" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "an object containing updated account ID",
+            "schema": {
+              "type": "object",
+              "properties": { "set": { "type": "boolean" }, "acctId": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "/iserver/account/orders": {
+      "get": {
+        "summary": "Live Orders",
+        "description": "The endpoint is meant to be used in polling mode, e.g. requesting every x seconds.\nThe response will contain two objects, one is notification, the other is orders.\nOrders is the list of live orders (cancelled, filled, submitted).\nNotifications contains information about execute orders as they happen, see status field.\nTo receive streaming live orders the endpoint /ws can be used. Refer to [Streaming WebSocket Data](https://interactivebrokers.github.io/cpwebapi/RealtimeSubscription.html) for details.\n",
+        "tags": ["Order"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "Filters",
+            "description": "list of filters separated by comma",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "An object contains two arrays",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "filters": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "inactive",
+                      "pending_submit",
+                      "pre_submitted",
+                      "submitted",
+                      "filled",
+                      "pending_cancel",
+                      "cancelled",
+                      "warn_state",
+                      "sort_by_time"
+                    ],
+                    "description": "Only return list of orders for filter value. More than one filter can be specified comma separated.\n  * inactive: Order was received by the system but is no longer active because it was rejected or cancelled.\n  * pending_submit: Order has been transmitted but have not received confirmation yet that order accepted by destination exchange or venue.\n  * pre_submitted: Simulated order transmitted but the order has yet to be elected. Order is held by IB system until election criteria are met.\n  * submitted: Order has been accepted by the system.\n  * filled: Order has been completely filled.\n  * pending_cancel: Sent an order cancellation request but have not yet received confirmation order cancelled by destination exchange or venue.\n  * cancelled: The balance of your order has been confirmed canceled by the system.\n  * warn_state: Order has a specific warning message such as for basket orders.\n  * sort_by_time: There is an initial sort by order state performed so active orders are always above inactive and filled then orders are sorted chronologically.\n"
+                  }
+                },
+                "orders": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "acct": { "type": "string", "description": "Account number" },
+                      "conidex": {
+                        "type": "string",
+                        "description": "conid and exchange. Format supports conid or conid@exchange"
+                      },
+                      "conid": { "type": "number", "description": "Contract identifier" },
+                      "orderId": { "type": "string", "description": "Order identifier" },
+                      "cashCcy": { "type": "string", "description": "Cash currency" },
+                      "sizeAndFills": {
+                        "type": "string",
+                        "description": "Quantity outstanding and total quantity concatenated with forward slash separator"
+                      },
+                      "orderDesc": { "type": "string", "description": "Order description" },
+                      "description1": { "type": "string", "description": "Formatted ticker description" },
+                      "ticker": { "type": "string", "description": "Underlying symbol" },
+                      "secType": { "type": "string", "description": "Asset class" },
+                      "listingExchange": { "type": "string", "description": "Listing Exchange" },
+                      "remainingQuantity": { "type": "number", "description": "Quantity remaining" },
+                      "filledQuantity": { "type": "number", "description": "Quantity filled" },
+                      "companyName": { "type": "string", "description": "Company Name" },
+                      "status": { "type": "string", "description": "Status of the order" },
+                      "origOrderType": { "type": "string", "description": "Original order type" },
+                      "supportsTaxOpt": {
+                        "type": "number",
+                        "description": "Supports Tax Optimization with 0 for no and 1 for yes"
+                      },
+                      "lastExecutionTime": {
+                        "type": "number",
+                        "description": "Last status update in format YYMMDDhhmms based in GMT"
+                      },
+                      "lastExecutionTime_r": { "type": "number", "description": "Last status update unix time in ms" },
+                      "orderType": { "type": "string", "description": "Order type" },
+                      "order_ref": { "type": "string", "description": "Order reference" },
+                      "side": {
+                        "type": "string",
+                        "enum": ["BUY", "SELL", "ASSN", "EXER"],
+                        "description": "The side of the market of the order.\n * BUY: Buy contract near posted ask price\n * SELL: Sell contract near posted bid price\n * ASSN: Option Assignment, if BUYSELL=BUY and OptionType=PUT or BUYSELL=SELL and OptionType=CALL\n * EXER: Option Exercise, if BUYSELL=SELL and OptionType=PUT or BUYSELL=BUY and OptionType=CALL\n"
+                      },
+                      "timeInForce": { "type": "string", "description": "Time in force" },
+                      "price": { "type": "number", "description": "Price of order" },
+                      "bgColor": { "type": "string", "description": "Background color in hex format" },
+                      "fgColor": { "type": "string", "description": "Foreground color in hex format" }
+                    }
+                  }
+                },
+                "snapshot": { "type": "boolean", "description": "If live order update is a snapshot" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/iserver/account/{accountId}/orders": {
+      "post": {
+        "summary": "Place Orders",
+        "description": "When connected to an IServer Brokerage Session, this endpoint will allow you to submit orders. \nCP WEB API supports various advanced orderTypes, for additional details and examples refer to [IBKR Quant Blog](https://www.tradersinsight.news/category/ibkr-quant-news/programming_languages/rest-development/).\n  * Bracket - Attach additional opposite-side order(s) by using a single **cOID** sent with the parent and set the same value for **parentId** in each child order(s).\n  * Cash Quantity -  Send orders using monetary value by specifying **cashQty** instead of quantity, e.g. cashQty: 200. The endpoint /iserver/contract/rules returns list of valid orderTypes in cqtTypes.\n  * Currency Conversion - Convert cash from one currency to another by including **isCcyConv** = **true**. To specify the cash quantity use **fxQTY** instead of quantity, e.g. fxQTY: 100.\n  * Fractional - Contracts that support fractional shares can be traded by specifying **quantity** as a float, e.g. quantity: 0.001. The endpoint /iserver/contract/rules returns a list of valid orderTypes in fraqTypes.\n  * IB Algos - Attached user-defined settings to your trades by using any of IBKR's Algo Orders. Use the endpoint /iserver/contract/{conid}/algos to identify the available strategies for a contract.\n  * One-Cancels-All (OCA) - Group multiple unrelated orders by passing order request info in an array and including **isSingleGroup = true** for each order. All orders will be assigned the same oca_group_id.\n",
+        "tags": ["Order"],
+        "parameters": [
+          { "name": "accountId", "in": "path", "required": true, "type": "string", "description": "account id" },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "order request info",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "orders": {
+                  "type": "array",
+                  "description": "Notes for bracket orders: 1. Children orders will not have its own \"cOID\", so please donot pass \"cOID\"\nparameter in child order.Instead, they will have a \"parentId\" which must be equal to \"cOID\" of parent.\n2. When you cancel a parent order, it will cancel all bracket orders, when you cancel one child order,\nit will also cancel its sibling order.\n",
+                  "items": { "$ref": "#/definitions/order-request" }
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "returns an array",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "string" },
+                  "message": {
+                    "type": "array",
+                    "description": "Please note here, if the message is a question, you have to reply to question in order to submit\nthe order successfully. See more in the \"/iserver/reply/{replyid}\" endpoint.\n",
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/iserver/account/orders/{faGroup}": {
+      "post": {
+        "summary": "Place Orders for FA",
+        "description": "Financial Advisors can use this endpoint to place an order for a specified group. To place an order for a specified account use the endpoint /iserver/account/{accountId}/order.\nMore information about groups can be found in the [TWS Users' Guide:](https://guides.interactivebrokers.com/twsguide/twsguide.htm#usersguidebook/financialadvisors/create_an_account_group_for_share_allocation.htm).\n",
+        "tags": ["Order"],
+        "parameters": [
+          {
+            "name": "faGroup",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "financial advisor group"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "order request info",
+            "required": true,
+            "schema": { "$ref": "#/definitions/order-request" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "returns an array",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "string" },
+                  "message": {
+                    "type": "array",
+                    "description": "Please note here, if the message is a question, you have to reply to question in order to submit\nthe order successfully. See more in the \"/iserver/reply/{replyid}\" endpoint.\n",
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/iserver/reply/{replyid}": {
+      "post": {
+        "summary": "Place Order Reply",
+        "description": "Reply to questions when placing orders and submit orders",
+        "tags": ["Order"],
+        "parameters": [
+          {
+            "name": "replyid",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "Please use the \"id\" from the response of \"Place Order\" endpoint"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Answer to question",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "confirmed": { "description": "answer to question, true means yes, false means no", "type": "boolean" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order is submitted successfully, returns an array contains one object",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "order_id": { "type": "string" },
+                  "order_status": { "type": "string" },
+                  "local_order_id": { "type": "string" }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "When you send \"confirmed-false\" in the request, you will receive this",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": { "description": "for example-order not confirmed", "type": "string" },
+                "statusCode": { "type": "integer" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/iserver/account/{accountId}/orders/whatif": {
+      "post": {
+        "summary": "Preview Orders",
+        "description": "This endpoint allows you to preview order without actually submitting the order and you can get\ncommission information in the response. Also supports bracket orders.\n",
+        "tags": ["Order"],
+        "parameters": [
+          { "name": "accountId", "in": "path", "required": true, "type": "string", "description": "account id" },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "order info",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "orders": {
+                  "type": "array",
+                  "description": "Notes for bracket orders: 1. Children orders will not have its own \"cOID\", so please donot pass \"cOID\"\nparameter in child order.Instead, they will have a \"parentId\" which must be equal to \"cOID\" of parent.\n2. When you cancel a parent order, it will cancel all bracket orders, when you cancel one child order,\nit will also cancel its sibling order.\n",
+                  "items": { "$ref": "#/definitions/order-request" }
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "returns an object",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "amount": {
+                  "type": "object",
+                  "properties": {
+                    "amount": { "type": "string", "description": "for example 23,000 USD" },
+                    "commission": { "type": "string", "description": "for example 1.1 ... 1.2 USD" },
+                    "total": { "type": "string" }
+                  }
+                },
+                "equity": {
+                  "type": "object",
+                  "properties": {
+                    "current": { "type": "string" },
+                    "change": { "type": "string" },
+                    "after": { "type": "string" }
+                  }
+                },
+                "initial": {
+                  "type": "object",
+                  "properties": {
+                    "current": { "type": "string" },
+                    "change": { "type": "string" },
+                    "after": { "type": "string" }
+                  }
+                },
+                "maintenance": {
+                  "type": "object",
+                  "properties": {
+                    "current": { "type": "string" },
+                    "change": { "type": "string" },
+                    "after": { "type": "string" }
+                  }
+                },
+                "warn": { "type": "string" },
+                "error": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/iserver/account/order/status/{orderId}": {
+      "get": {
+        "summary": "Order Status",
+        "tags": ["Order"],
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "description": "Customer order id, use /iservers/account/orders endpoint to query orderId.",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": { "description": "returns an object", "schema": { "$ref": "#/definitions/order-status" } }
+        }
+      }
+    },
+    "/iserver/account/{accountId}/order/{orderId}": {
+      "post": {
+        "summary": "Modify Order",
+        "description": "Modifies an open order. Must call /iserver/accounts endpoint prior to modifying an order. Use /iservers/account/orders endpoint to review open-order(s).",
+        "tags": ["Order"],
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "account id, or fa group if modifying a group order"
+          },
+          {
+            "in": "path",
+            "name": "orderId",
+            "description": "Customer order id, use /iservers/account/orders endpoint to query orderId.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "modify-order request",
+            "required": true,
+            "schema": { "$ref": "#/definitions/modify-order" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "returns an array",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "order_id": { "type": "string" },
+                  "local_order_id": { "type": "string" },
+                  "order_status": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Cancel Order",
+        "description": "Cancels an open order. Must call /iserver/accounts endpoint prior to cancelling an order. Use /iservers/account/orders endpoint to review open-order(s) and get latest order status.",
+        "tags": ["Order"],
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "account id, or fa group if deleting a group order"
+          },
+          {
+            "in": "path",
+            "name": "orderId",
+            "description": "Customer order id, use /iservers/account/orders endpoint to query orderId.",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "returns an object with order id, message, conid and account id",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "order_id": { "type": "string" },
+                "msg": { "type": "string" },
+                "conid": { "type": "integer" },
+                "account": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "futures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "future contract information",
+        "properties": {
+          "symbol": { "type": "string" },
+          "conid": { "type": "integer", "description": "conid of the future contract" },
+          "underlyingConid": { "type": "integer" },
+          "expirationDate": { "type": "string" },
+          "ltd": { "type": "string", "description": "last trading day" }
+        }
+      }
+    },
+    "stocks": {
+      "type": "array",
+      "description": "This is an array of object(s), there could be multiple results under same symbol\n",
+      "items": {
+        "type": "object",
+        "description": "future contract information",
+        "properties": {
+          "name": { "type": "string", "description": "company name" },
+          "chineseName": { "type": "string", "description": "company name in Chinese" },
+          "assetClass": { "type": "string", "example": "STK" },
+          "contracts": {
+            "type": "array",
+            "description": "array of contracts from different exchanges",
+            "items": {
+              "type": "object",
+              "properties": {
+                "conid": { "type": "integer", "description": "conid of the stock contract" },
+                "exchange": { "type": "string", "example": "NYSE" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "amount": { "type": "number" },
+        "currency": { "type": "string" },
+        "isNull": { "type": "boolean" },
+        "timestamp": { "type": "integer" },
+        "value": { "type": "string" }
+      }
+    },
+    "position": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "Account Information",
+        "properties": {
+          "acctId": { "type": "string" },
+          "conid": { "type": "integer" },
+          "contractDesc": { "type": "string" },
+          "assetClass": { "type": "string" },
+          "position": { "type": "number" },
+          "mktPrice": { "type": "number" },
+          "mktValue": { "type": "number" },
+          "currency": { "type": "string" },
+          "avgCost": { "type": "number" },
+          "avgPrice": { "type": "number" },
+          "realizedPnl": { "type": "number" },
+          "unrealizedPnl": { "type": "number" },
+          "exchs": { "type": "string" },
+          "expiry": { "type": "string" },
+          "putOrCall": { "type": "string" },
+          "multiplier": { "type": "number" },
+          "strike": { "type": "number" },
+          "exerciseStyle": { "type": "string" },
+          "undConid": { "type": "integer" },
+          "conExchMap": { "type": "array", "items": { "type": "string" } },
+          "baseMktValue": { "type": "number" },
+          "baseMktPrice": { "type": "number" },
+          "baseAvgCost": { "type": "number" },
+          "baseAvgPrice": { "type": "number" },
+          "baseRealizedPnl": { "type": "number" },
+          "baseUnrealizedPnl": { "type": "number" },
+          "name": { "type": "string" },
+          "lastTradingDay": { "type": "string" },
+          "group": { "type": "string" },
+          "sector": { "type": "string" },
+          "sectorGroup": { "type": "string" },
+          "ticker": { "type": "string" },
+          "undComp": { "type": "string" },
+          "undSym": { "type": "string" },
+          "fullName": { "type": "string" },
+          "pageSize": { "type": "integer" },
+          "model": { "type": "string" }
+        }
+      }
+    },
+    "allocation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "allocation",
+        "properties": {
+          "assetClass": {
+            "type": "object",
+            "description": "portfolio allocation by asset class",
+            "properties": {
+              "long": {
+                "type": "object",
+                "description": "long positions allocation",
+                "properties": {
+                  "STK": { "type": "number" },
+                  "OPT": { "type": "number" },
+                  "FUT": { "type": "number" },
+                  "WAR": { "type": "number" },
+                  "BOND": { "type": "number" },
+                  "CASH": { "type": "number" }
+                }
+              },
+              "short": {
+                "type": "object",
+                "description": "short positions allocation",
+                "properties": {
+                  "STK": { "type": "number" },
+                  "OPT": { "type": "number" },
+                  "FUT": { "type": "number" },
+                  "WAR": { "type": "number" },
+                  "BOND": { "type": "number" },
+                  "CASH": { "type": "number" }
+                }
+              }
+            }
+          },
+          "sector": {
+            "type": "object",
+            "description": "portfolio allocation by sector",
+            "properties": {
+              "long": {
+                "type": "object",
+                "description": "long positions allocation",
+                "properties": {
+                  "Others": { "type": "number" },
+                  "Utilities": { "type": "number" },
+                  "Energy": { "type": "number" },
+                  "Technology": { "type": "number" },
+                  "Financial": { "type": "number" },
+                  "Communications": { "type": "number" }
+                }
+              },
+              "short": {
+                "type": "object",
+                "description": "short positions allocation",
+                "properties": {
+                  "Industrial": { "type": "number" },
+                  "Consumer": { "type": "number" },
+                  "Diversified": { "type": "number" }
+                }
+              }
+            }
+          },
+          "group": {
+            "type": "object",
+            "description": "portfolio allocation by group",
+            "properties": {
+              "long": {
+                "type": "object",
+                "description": "long positions allocation",
+                "properties": {
+                  "Computers": { "type": "number" },
+                  "Semiconductors": { "type": "number" },
+                  "Others": { "type": "number" },
+                  "Chemicals": { "type": "number" },
+                  "Apparel": { "type": "number" },
+                  "Communications": { "type": "number" }
+                }
+              },
+              "short": {
+                "type": "object",
+                "description": "short positions allocation",
+                "properties": {
+                  "Banks": { "type": "number" },
+                  "Airlines": { "type": "number" },
+                  "Internet": { "type": "number" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "accounts": { "type": "array", "items": { "$ref": "#/definitions/account" } },
+    "account": {
+      "type": "object",
+      "description": "account information",
+      "properties": {
+        "id": { "type": "string", "description": "The account identification value" },
+        "accountId": {
+          "type": "string",
+          "description": "The account number",
+          "example": "U12345678 for Individual Live Accounts, DU12345678 for Individual Paper Accounts"
+        },
+        "accountVan": { "type": "string", "description": "The accountAlias" },
+        "accountTitle": { "type": "string", "description": "Title of the account" },
+        "displayName": {
+          "type": "string",
+          "description": "Whichever value is not null in this priority",
+          "enum": ["accountTitle", "accountVan", "accountId"]
+        },
+        "accountAlias": {
+          "type": "string",
+          "description": "User customizable account alias. Refer to [Configure Account Alias](https://guides.interactivebrokers.com/cp/cp.htm#am/settings/accountalias.htm) for details."
+        },
+        "accountStatus": { "type": "number", "description": "When the account was opened in unix time." },
+        "currency": {
+          "type": "string",
+          "description": "Base currency of the account.",
+          "enum": [
+            "AUD",
+            "GBP",
+            "CAD",
+            "CNH",
+            "CZK",
+            "DKK",
+            "EUR",
+            "HKD",
+            "HUF",
+            "INR",
+            "ILS",
+            "JPY",
+            "MXN",
+            "NOK",
+            "NZD",
+            "PLN",
+            "RUB",
+            "SGD",
+            "SEK",
+            "CHF",
+            "USD"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "description": "Account Type",
+          "enum": ["INDIVIDUAL", "JOINT", "ORG", "TRUST", "DEMO"]
+        },
+        "tradingType": { "type": "string", "description": "UNI - Deprecated property" },
+        "faclient": { "type": "boolean", "description": "If an account is a sub-account to a Financial Advisor." },
+        "clearingStatus": {
+          "type": "string",
+          "enum": ["O", "P", "N", "A", "R", "C"],
+          "description": "Status of the Account\n  * O = Open\n  * P or N = Pending\n  * A = Abandoned\n  * R = Rejected\n  * C = Closed\n"
+        },
+        "covestor": { "type": "boolean", "description": "Is a Covestor Account" },
+        "parent": {
+          "type": "object",
+          "properties": {
+            "mmc": {
+              "type": "array",
+              "items": { "type": "string", "description": "Money Manager Client (MMC) Account" }
+            },
+            "accountId": { "type": "string", "description": "Account Number for Money Manager Client" },
+            "isMParent": { "type": "boolean", "description": "Is MM a Parent Account" },
+            "isMChild": { "type": "boolean", "description": "Is MM a Child Account" },
+            "isMultiplex": {
+              "type": "boolean",
+              "description": "Is a Multiplex Account. These are account models with individual account being parent and managed account being child."
+            }
+          }
+        },
+        "desc": { "type": "string", "description": "Formatted \"accountId - accountAlias\"" }
+      }
+    },
+    "ledger": {
+      "type": "object",
+      "properties": {
+        "commoditymarketvalue": { "type": "number" },
+        "futuremarketvalue": { "type": "number" },
+        "settledcash": { "type": "number" },
+        "exchangerate": { "type": "number" },
+        "sessionid": { "type": "integer" },
+        "cashbalance": { "type": "number" },
+        "corporatebondsmarketvalue": { "type": "number" },
+        "warrantsmarketvalue": { "type": "number" },
+        "netliquidationvalue": { "type": "number" },
+        "interest": { "type": "number" },
+        "unrealizedpnl": { "type": "number" },
+        "stockmarketvalue": { "type": "number" },
+        "moneyfunds": { "type": "number" },
+        "currency": { "type": "string" },
+        "realizedpnl": { "type": "number" },
+        "funds": { "type": "number" },
+        "acctcode": { "type": "string" },
+        "issueroptionsmarketvalue": { "type": "number" },
+        "key": { "type": "string" },
+        "timestamp": { "type": "integer" },
+        "severity": { "type": "integer" }
+      }
+    },
+    "authStatus": {
+      "type": "object",
+      "properties": {
+        "authenticated": { "description": "Brokerage session is authenticated", "type": "boolean" },
+        "connected": { "description": "Connected to backend", "type": "boolean" },
+        "competing": {
+          "description": "Brokerage session is competing, e.g. user is logged in to IBKR Mobile, WebTrader, TWS or other trading platforms.",
+          "type": "boolean"
+        },
+        "fail": { "description": "Authentication failed, why.", "type": "string" },
+        "message": { "description": "System messages that may affect trading", "type": "string" },
+        "prompts": {
+          "type": "array",
+          "description": "Prompt messages that may affect trading or the account",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "contract": {
+      "description": "Contains all details of the contract, including rules you can use when placing orders",
+      "type": "object",
+      "properties": {
+        "r_t_h": { "type": "boolean", "description": "true means you can trade outside RTH(regular trading hours)" },
+        "con_id": { "type": "string", "description": "same as that in request" },
+        "company_name": { "type": "string", "description": "Contracts company name" },
+        "exchange": { "type": "string" },
+        "local_symbol": { "type": "string", "description": "for exmple FB" },
+        "instrument_type": { "type": "string", "description": "for example STK" },
+        "currency": { "type": "string" },
+        "companyName": { "type": "string" },
+        "category": { "type": "string" },
+        "industry": { "type": "string" },
+        "rules": {
+          "type": "object",
+          "properties": {
+            "orderTypes": {
+              "type": "array",
+              "items": { "type": "string", "description": "store available order types for this contract" }
+            },
+            "orderTypesOutside": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "description": "store available order types for this contract outside regular hours"
+              }
+            },
+            "defaultSize": { "type": "number", "description": "default quantity you can use to place an order" },
+            "sizeIncrement": { "type": "number" },
+            "tifTypes": {
+              "type": "array",
+              "items": { "type": "string", "description": "store available time-in-force types" }
+            },
+            "limitPrice": { "type": "number", "description": "default limit price you can use to prefill your order" },
+            "stopprice": { "type": "number", "description": "default stop price you can use to prefill your order" },
+            "preview": {
+              "type": "boolean",
+              "description": "if you can preview the order or not with the whatif endpoint"
+            },
+            "displaySize": { "type": "string" },
+            "increment": { "type": "string" }
+          }
+        }
+      }
+    },
+    "trade": {
+      "type": "object",
+      "properties": {
+        "execution_id": { "type": "string", "description": "execution identifier for the order" },
+        "symbol": { "type": "string", "description": "Underlying Symbol" },
+        "side": {
+          "type": "string",
+          "enum": ["B", "S", "X"],
+          "description": "The side of the market of the order.\n  * B - Buy contract near posted ask price\n  * S - Sell contract near posted bid price\n  * X - Option expired\n"
+        },
+        "order_description": {
+          "type": "string",
+          "description": "Formatted description of the order \"%side% %size% @ %price% on %exchange%\"."
+        },
+        "trade_time": { "type": "string", "description": "Time of Status update in format \"YYYYMMDD-hh:mm:ss\"." },
+        "trade_time_r": { "type": "number", "description": "Time of status update in format unix time." },
+        "size": { "type": "string", "description": "Quantity of the order" },
+        "price": { "type": "string", "description": "Average Price" },
+        "order_ref": {
+          "type": "string",
+          "description": "User defined string used to identify the order. Value is set using \"cOID\" field while placing an order."
+        },
+        "submitter": { "type": "string", "description": "User that submitted order" },
+        "exchange": { "type": "string", "description": "Exchange or venue of order" },
+        "commission": { "type": "number", "description": "Commission of the order" },
+        "net_amount": {
+          "type": "number",
+          "description": "Net cost of the order, including contract multiplier and quantity."
+        },
+        "account": { "type": "string", "description": "accountCode" },
+        "acountCode": { "type": "string", "description": "Account Number" },
+        "company_name": { "type": "string", "description": "Contracts company name" },
+        "contract_description_1": {
+          "type": "string",
+          "description": "Format contract name",
+          "example": "FB Stock (NASDAQ.NMS)"
+        },
+        "sec_type": { "type": "string", "description": "Asset class", "example": "STK, FUT, OPT" },
+        "conid": { "type": "string", "description": "IBKR's contract identifier" },
+        "conidex": { "type": "string", "description": "conid and exchange. Format supports conid or conid@exchange" },
+        "position": { "type": "string", "description": "Total quantity owned for this contract" },
+        "clearing_id": {
+          "type": "string",
+          "description": "Firm which will settle the trade. For IBExecution customers only."
+        },
+        "clearing_name": {
+          "type": "string",
+          "description": "Specifies the true beneficiary of the order. For IBExecution customers only."
+        },
+        "liquidation_trade": { "type": "number", "description": "If order adds liquidity to the market." }
+      }
+    },
+    "modify-order": {
+      "type": "object",
+      "properties": {
+        "acctId": { "type": "string" },
+        "conid": { "type": "integer" },
+        "orderType": { "type": "string", "description": "for example LMT" },
+        "outsideRTH": { "type": "boolean" },
+        "price": { "type": "number" },
+        "auxPrice": { "type": "number" },
+        "side": { "type": "string", "description": "SELL or BUY" },
+        "listingExchange": { "type": "string", "description": "optional, not required" },
+        "ticker": { "type": "string", "description": "The ticker symbol of the original place order" },
+        "tif": {
+          "type": "string",
+          "description": "Specify a time in force to change how long your order will continue to work in the market",
+          "example": "tif = DAY to tif = GTC"
+        },
+        "quantity": { "type": "number", "description": "usually integer, for some special cases can be float numbers" },
+        "deactivated": {
+          "description": "Set to true if you want to pause a working order.\nFor details refer to the [TWS Users' Guide:](https://guides.interactivebrokers.com/tws/twsguide.html#usersguidebook/getstarted/pause_execution.htm)\n",
+          "type": "boolean"
+        }
+      }
+    },
+    "order-request": {
+      "type": "object",
+      "properties": {
+        "acctId": {
+          "description": "acctId is optional. It should be one of the accounts returned by\n/iserver/accounts. If not passed, the first one in the list is selected.\n",
+          "type": "string"
+        },
+        "conid": {
+          "description": "conid is the identifier of the security you want to trade, you can find the\nconid with /iserver/secdef/search.\n",
+          "type": "integer"
+        },
+        "conidex": {
+          "description": "Conid and Exchange - Can be used instead of conid when specifying the contract identifier of a security.\n",
+          "type": "string",
+          "example": "conidex = 265598"
+        },
+        "secType": {
+          "type": "string",
+          "description": "The contract-identifier (conid) and security type (type) specified as a concatenated value, conid:type",
+          "example": "secType = 265598:STK"
+        },
+        "cOID": {
+          "description": "Customer Order ID. An arbitrary string that can be used to identify the order, e.g \"my-fb-order\". The\nvalue must be unique for a 24h span. Please do not set this value for child orders when placing a bracket order.\n",
+          "type": "string"
+        },
+        "parentId": {
+          "description": "Only specify for child orders when placing bracket orders. The parentId for the child order(s) must be equal to the cOId (customer order id) of the parent.\n",
+          "type": "string"
+        },
+        "orderType": {
+          "description": "The order-type determines what type of order you want to send.\n  * LMT - A limit order is an order to buy or sell at the specified price or better.\n  * MKT - A market order is an order to buy or sell at the markets current NBBO.\n  * STP - A stop order becomes a market order once the specified stop price is attained or penetrated.\n  * STOP_LIMIT - A stop limit order becomes a limit order once the specified stop price is attained or penetrated.\n  * MIDPRICE - A MidPrice order attempts to fill at the current midpoint of the NBBO or better.\n  * TRAIL - A sell trailing stop order sets the stop price at a fixed amount below the market price with an attached \"trailing\" amount. See more details here: https://ndcdyn.interactivebrokers.com/en/index.php?f=605\n  * TRAILLMT - A trailing stop limit order is designed to allow an investor to specify a limit on the maximum possible loss, without setting a limit on the maximum possible gain.\n    See more details here: https://ndcdyn.interactivebrokers.com/en/index.php?f=606\n",
+          "type": "string"
+        },
+        "listingExchange": {
+          "description": "listingExchange is optional. By default we use \"SMART\" routing. Possible values are available via the endpoint: /iserver/contract/{conid}/info,\nsee **valid_exchange** e.g: SMART,AMEX,NYSE,CBOE,ISE,CHX,ARCA,ISLAND,DRCTEDGE,BEX,BATS,EDGEA,CSFBALGO,JE FFALGO,BYX,IEX,FOXRIVER,TPLUS1,NYSENAT,PSX\n",
+          "type": "string"
+        },
+        "isSingleGroup": {
+          "type": "boolean",
+          "description": "set to true if you want to place a single group orders(OCA)\n"
+        },
+        "outsideRTH": {
+          "description": "set to true if the order can be executed outside regular trading hours.\n",
+          "type": "boolean"
+        },
+        "price": {
+          "description": "optional if order is LMT, or STOP_LIMIT, this is the limit price. For STP|TRAIL this is the stop price. For MIDPRICE this is the option price cap.\n",
+          "type": "number"
+        },
+        "auxPrice": {
+          "description": "optional if order is STOP_LIMIT|TRAILLMT, this is the stop price. You must specify both price and auxPrice for STOP_LIMIT|TRAILLMT orders.\n"
+        },
+        "side": { "type": "string", "description": "SELL or BUY" },
+        "ticker": { "description": "This is the  underlying symbol for the contract.\n", "type": "string" },
+        "tif": {
+          "description": "The Time-In-Force determines how long the order remains active on the market.\n  * GTC - use Good-Till-Cancel for orders to remain active until it executes or cancelled.\n  * OPG - use Open-Price-Guarantee for Limit-On-Open (LOO) or Market-On-Open (MOO) orders.\n  * DAY - if not executed a Day order will automatically cancel at the end of the markets regular trading hours.\n  * IOC - any portion of an Immediate-or-Cancel order that is not filled as soon as it becomes available in the market is cancelled.\n",
+          "type": "string"
+        },
+        "trailingAmt": {
+          "description": "optional if order is TRAIL, or TRAILLMT. When trailingType is amt, this is the trailing amount, when trailingType is %, it means percentage.\nYou must specify both trailingType and trailingAmt for TRAIL and TRAILLMT order\n",
+          "type": "number"
+        },
+        "trailingType": {
+          "description": "This is the trailing type for trailing amount. We only support two types here: amt or %.\nYou must specify both trailingType and trailingAmt for TRAIL and TRAILLMT order\n",
+          "example": "amt",
+          "type": "string"
+        },
+        "referrer": { "description": "Custom order reference\n", "example": "QuickTrade", "type": "string" },
+        "quantity": {
+          "description": "Usually integer, for some special cases such as fractional orders can specify as a float, e.g. quantity = 0.001.\nIn some special cases quantity is not specified, such as when using 'cashQty' or 'fxQty'.\n",
+          "type": "number"
+        },
+        "cashQty": {
+          "description": "Cash Quantity - used to specify the monetary value of an order instead of the number of shares. When using 'cashQty' don't specify 'quantity'\nOrders that express size using a monetary value, e.g. cash quantity can result in fractional shares and are provided on a non-guaranteed basis.\nThe system simulates the order by canceling it once the specified amount is spent (for buy orders) or collected (for sell orders).\nIn addition to the monetary value, the order uses a maximum size that is calculated using the Cash Quantity Estimated Factor, which can be modified in Order Presets.  \n",
+          "type": "number"
+        },
+        "fxQty": {
+          "description": "double number, this is the cash quantity field which can only be used for Currency Conversion Orders. When using 'fxQty' don't specify 'quantity'.\n",
+          "type": "number"
+        },
+        "useAdaptive": {
+          "description": "If true, the system will use the Price Management Algo to submit the order.\nhttps://www.interactivebrokers.com/en/index.php?f=43423\n",
+          "type": "boolean"
+        },
+        "isCcyConv": { "description": "set to true if the order is a FX conversion order\n", "type": "boolean" },
+        "allocationMethod": {
+          "description": "Set the allocation method when placing an order using an FA account for a group\nPossible allocation methods are \"NetLiquidity\", \"AvailableEquity\", \"EqualQuantity\" and \"PctChange\".\n",
+          "type": "string"
+        },
+        "strategy": { "description": "Specify which IB Algo algorithm to use for this order.\n", "type": "string" },
+        "strategyParameters": {
+          "description": "The IB Algo parameters for the specified algorithm.\n",
+          "type": "object"
+        }
+      }
+    },
+    "order": {
+      "description": "contains all the order related info",
+      "type": "object",
+      "properties": {
+        "acct": { "type": "string", "description": "account id" },
+        "conid": { "type": "integer" },
+        "orderDesc": { "type": "string" },
+        "description1": { "type": "string" },
+        "ticker": { "type": "string", "description": "for example FB" },
+        "secType": { "type": "string", "description": "for example STK" },
+        "listingExchange": { "type": "string", "description": "for example NASDAQ.NMS" },
+        "remainingQuantity": { "type": "string" },
+        "filledQuantity": { "type": "string" },
+        "companyName": { "type": "string" },
+        "status": {
+          "type": "string",
+          "description": "* PendingSubmit - Indicates the order was sent, but confirmation has not been received that it has been received by the destination.\n                  Occurs most commonly if an exchange is closed.\n* PendingCancel - Indicates that a request has been sent to cancel an order but confirmation has not been received of its cancellation. * PreSubmitted - Indicates that a simulated order type has been accepted by the IBKR system and that this order has yet to be elected.\n                 The order is held in the IBKR system until the election criteria are met. At that time the order is transmitted to the order destination as specified.\n* Submitted - Indicates that the order has been accepted at the order destination and is working. * Cancelled - Indicates that the balance of the order has been confirmed cancelled by the IB system.\n              This could occur unexpectedly when IB or the destination has rejected the order.\n* Filled - Indicates that the order has been completely filled. * Inactive - Indicates the order is not working, for instance if the order was invalid and triggered an error message,\n             or if the order was to short a security and shares have not yet been located.\n"
+        },
+        "origOrderType": { "type": "string", "description": "for example Limit" },
+        "side": { "type": "string", "description": "BUY or SELL" },
+        "price": { "type": "number" },
+        "bgColor": { "type": "string", "description": "back-ground color" },
+        "fgColor": { "type": "string" },
+        "orderId": { "type": "integer" },
+        "parentId": { "description": "Only exists in child order of bracket", "type": "integer" },
+        "order_ref": {
+          "description": "User defined string used to identify the order. Value is set using \"cOID\" field while placing an order.",
+          "type": "string"
+        }
+      }
+    },
+    "order-status": {
+      "description": "contains all the details of an order",
+      "type": "object",
+      "properties": {
+        "sub_type": { "type": "string", "description": "order sub-type" },
+        "request_id": { "type": "string", "description": "order request id" },
+        "order_id": { "type": "integer", "description": "system generated order id, unique per account" },
+        "conidex": { "type": "string", "description": "conid and exchange. Format supports conid or conid@exchange" },
+        "symbol": { "type": "string", "description": "Underlying symbol" },
+        "side": {
+          "type": "string",
+          "enum": ["B", "S", "X"],
+          "description": "The side of the market of the order.\n  * B - Buy contract near posted ask price\n  * S - Sell contract near posted bid price\n  * X - Option expired\n"
+        },
+        "contract_description_1": {
+          "type": "string",
+          "description": "Format contract name",
+          "example": "FB Stock (NASDAQ.NMS)"
+        },
+        "listing_exchange": { "type": "string", "description": "Trading Exchange or Venue", "example": "NASDAQ.NMS" },
+        "option_acct": { "type": "string" },
+        "company_name": { "type": "string", "description": "Contracts company name", "example": "APPLE INC" },
+        "size": { "type": "string", "description": "Quantity updated" },
+        "total_size": { "type": "string", "description": "Total quantity" },
+        "currency": { "type": "string", "description": "Contract traded currency" },
+        "account": { "type": "string", "description": "account id" },
+        "order_type": { "type": "string", "description": "Types of orders", "example": "LIMIT" },
+        "limit_price": { "type": "string", "description": "Limit price" },
+        "stop_price": { "type": "string", "description": "Stop price" },
+        "cum_fill": { "type": "string", "description": "Cumulative fill" },
+        "order_status": {
+          "type": "string",
+          "description": "*  PendingSubmit - Indicates the order was sent, but confirmation has not been received that it has been received by the destination.\n                   Occurs most commonly if an exchange is closed.\n*  PendingCancel - Indicates that a request has been sent to cancel an order but confirmation has not been received of its cancellation. *  PreSubmitted - Indicates that a simulated order type has been accepted by the IBKR system and that this order has yet to be elected.\n                  The order is held in the IBKR system until the election criteria are met. At that time the order is transmitted to the order destination as specified.\n*  Submitted - Indicates that the order has been accepted at the order destination and is working. *  Cancelled - Indicates that the balance of the order has been confirmed cancelled by the IB system.\n               This could occur unexpectedly when IB or the destination has rejected the order.\n*  Filled - Indicates that the order has been completely filled. *  Inactive - Indicates the order is not working, for instance if the order was invalid and triggered an error message,\n              or if the order was to short a security and shares have not yet been located.\n"
+        },
+        "order_status_description": { "type": "string", "description": "Description of the order status" },
+        "tif": {
+          "type": "string",
+          "description": "Time-in-Force - length of time order will continue working before it is canceled."
+        },
+        "fg_color": { "type": "string", "description": "Foreground color in hex format" },
+        "bg_color": { "type": "string", "description": "Background color in hex format" },
+        "order_not_editable": { "type": "boolean", "description": "If true not allowed to modify order" },
+        "editable_fields": {
+          "type": "string",
+          "description": "Fields that can be edited in escaped unicode characters",
+          "example": "\\u001E"
+        },
+        "cannot_cancel_order": { "type": "boolean", "description": "If true not allowed to cancel order" },
+        "outside_rth": { "type": "boolean", "description": "If true order trades outside regular trading hours" },
+        "deactivate_order": { "type": "boolean", "description": "If true order is de-activated" },
+        "use_price_mgmt_algo": {
+          "type": "boolean",
+          "description": "If true price management algo is enabled, refer to https://www.interactivebrokers.com/en/index.php?f=43423"
+        },
+        "sec_type": { "type": "string", "description": "Asset class", "example": "STK" },
+        "available_chart_periods": { "type": "string", "description": "List of available chart periods" },
+        "order_description": {
+          "type": "string",
+          "description": "Format description of order",
+          "example": "BUY 100 LIMIT 125.0 DAY"
+        },
+        "order_description_with_contract": {
+          "type": "string",
+          "description": "order_description with the symbol",
+          "example": "BUY 100 AAPL LIMIT 125.0 DAY"
+        },
+        "alert_active": { "type": "integer" },
+        "child_order_type": {
+          "type": "string",
+          "description": "type of the child order",
+          "example": "A=attached, B=beta-hedge, etc"
+        },
+        "size_and_fills": { "type": "string", "description": "Format fillQuantity\\totalQuantity", "example": "0/9" },
+        "exit_strategy_display_price": { "type": "string", "description": "Position display price" },
+        "exit_strategy_chart_description": {
+          "type": "string",
+          "description": "Position description to display on chart"
+        },
+        "exit_strategy_tool_availability": {
+          "type": "string",
+          "enum": [1, 0],
+          "description": "* 1: If your account has position or order for contract * 0: If your account has no position or order for contract\n"
+        },
+        "allowed_duplicate_opposite": {
+          "type": "boolean",
+          "description": "Returns true if contract supports duplicate/opposite side order."
+        },
+        "order_time": { "type": "string", "description": "Time of status update in unix time" },
+        "oca_group_id": {
+          "type": "string",
+          "description": "only exists for oca orders, oca orders in same group will have same id"
+        }
+      }
+    },
+    "set-account": { "type": "object", "properties": { "acctId": { "type": "string", "description": "Account ID" } } }
+  }
+}

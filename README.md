@@ -18,7 +18,9 @@
 
 2. 日志策略及输出格式调整，移除冗余信息
 
-3. 通过 Docker 部署，启动命令
+3. 添加 Swagger API 文档
+
+4. 通过 Docker 部署，启动命令
 
 ```
 docker run -d -p 5000:5000 fangqk1991/ibkr
@@ -27,5 +29,10 @@ docker run -d -p 5000:5000 fangqk1991/ibkr
 部署后验证
 
 ```
-curl http://127.0.0.1:5000
+curl http://localhost:5000
 ```
+
+访问 Swagger API 文档
+
+* <http://localhost:5000/swagger>
+

@@ -16,6 +16,9 @@
     cors:
         origin.allowed: "*"
         allowCredentials: false
+    webApps:
+      - name: "swagger"
+        index: "index.html"
     ips:
       allow:
         - 127.0.0.1
