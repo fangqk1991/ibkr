@@ -2,7 +2,6 @@
   "basePath": "/v1/api",
   "produces": ["application/json"],
   "name": "swagger",
-  "schemes": ["http"],
   "swagger": "2.0",
   "info": { "title": "Client Portal Web API", "description": "Client Portal Web API", "version": "1.0.0" },
   "paths": {
