@@ -963,6 +963,52 @@
           }
         }
       }
+    },
+    "/iserver/marketdata/history": {
+      "get": {
+        "summary": "Market Data History",
+        "description": "Get historical market Data for given conid, length of data is controlled by 'period' and 'bar'.\nFormatted as: min=minute, h=hour, d=day, w=week, m=month, y=year\ne.g. period =1y with bar =1w returns 52 data points (Max of 1000 data points supported).\n**Note**: There's a limit of 5 concurrent requests. Excessive requests will return a 'Too many requests' status 429 response.\n",
+        "tags": ["Market Data"],
+        "parameters": [
+          { "in": "query", "name": "conid", "description": "contract id", "required": true, "type": "string" },
+          {
+            "in": "query",
+            "name": "exchange",
+            "description": "Exchange of the conid (e.g. ISLAND, NYSE, etc.). Default value is empty which corresponds to primary exchange of the conid.",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "description": "available time period-- {1-30}min, {1-8}h, {1-1000}d, {1-792}w, {1-182}m, {1-15}y",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "bar",
+            "description": "possible value-- 1min, 2min, 3min, 5min, 10min, 15min, 30min, 1h, 2h, 3h, 4h, 8h, 1d, 1w, 1m",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "outsideRth",
+            "description": "For contracts that support it, will determine if historical data includes outside of regular trading hours.",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "responses": {
+          "200": { "description": "Returns an object", "schema": { "$ref": "#/definitions/history-data" } },
+          "429": {
+            "description": "Too many requests",
+            "schema": { "type": "object", "properties": { "error": { "type": "string" } } }
+          },
+          "500": { "description": "System Error", "schema": { "$ref": "#/definitions/system-error" } }
+        }
+      }
     }
   },
   "definitions": {
@@ -1622,6 +1668,64 @@
         }
       }
     },
-    "set-account": { "type": "object", "properties": { "acctId": { "type": "string", "description": "Account ID" } } }
+    "set-account": { "type": "object", "properties": { "acctId": { "type": "string", "description": "Account ID" } } },
+    "history-data": {
+      "type": "object",
+      "properties": {
+        "symbol": { "type": "string", "description": "Underlying symbol" },
+        "text": { "type": "string", "description": "companyName" },
+        "priceFactor": {
+          "type": "integer",
+          "description": "priceFactor is price increment obtained from display rule",
+          "example": 100
+        },
+        "startTime": { "type": "string", "description": "start date time in the format YYYYMMDD-HH:mm:ss" },
+        "high": {
+          "type": "string",
+          "description": "High value during this time series with format %h/%v/%t. %h is the high price (scaled by priceFactor), %v is volume\n(volume factor will always be 100 (reported volume = actual volume/100)) and %t is minutes from start time of the chart\n"
+        },
+        "low": {
+          "type": "string",
+          "description": "Low value during this time series with format %l/%v/%t. %l is the low price (scaled by priceFactor), %v is volume\n(volume factor will always be 100 (reported volume = actual volume/100)) and %t is minutes from start time of the chart\n"
+        },
+        "timePeriod": { "type": "string", "description": "The duration for the historical data request" },
+        "barLength": { "type": "integer", "description": "The number of seconds in a bar" },
+        "mdAvailability": {
+          "type": "string",
+          "description": "Market Data Availability. The field may contain two chars. The first char is the primary code: S = Streaming, R = Realtime, D = Delayed,\nZ = Frozen, Y = Frozen Delayed. The second char is the secondary code: P = Snapshot Available, p = Consolidated.\n"
+        },
+        "mktDataDelay": {
+          "type": "integer",
+          "description": "The time it takes, in milliseconds, to process the historical data request"
+        },
+        "outsideRth": {
+          "type": "boolean",
+          "description": "The historical data returned includes outside of regular trading hours\n"
+        },
+        "tradingDayDuration": { "type": "integer", "description": "The number of seconds in the trading day" },
+        "volumeFactor": { "type": "integer" },
+        "priceDisplayRule": { "type": "integer" },
+        "priceDisplayValue": { "type": "string" },
+        "negativeCapable": { "type": "boolean" },
+        "messageVersion": { "type": "integer" },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "o": { "type": "number", "description": "open price" },
+              "c": { "type": "number", "description": "close price" },
+              "h": { "type": "number", "description": "high price" },
+              "l": { "type": "number", "description": "low price" },
+              "v": { "type": "number", "description": "volume" },
+              "t": { "type": "number", "description": "unix time stamp" }
+            }
+          }
+        },
+        "points": { "type": "integer", "description": "total number of points" },
+        "travelTime": { "type": "integer" }
+      }
+    },
+    "system-error": { "type": "object", "properties": { "error": { "type": "string" } } }
   }
 }
